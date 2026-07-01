@@ -383,7 +383,7 @@
       </div>
 
       <p class="gate-note">Your data is stored in your own Google Drive (a private app folder) and synced across your devices.</p>
-      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted-2);letter-spacing:.04em">Build 2026.06.28-s</div>
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted-2);letter-spacing:.04em">Build 2026.06.28-t</div>
     </div>
   </div>
 
@@ -2611,7 +2611,7 @@ JSON.stringify(lesson),
       BOOKS66.forEach((n,i)=>{ vrefMap[n]=i+1; vrefMap[n.replace(/\s+/g,"")]=i+1; });
       for(const full in VREF_ABBR){ const id=vrefMap[full]; if(!id) continue; VREF_ABBR[full].forEach(a=>{ vrefMap[a]=id; }); }
       const keys=Object.keys(vrefMap).sort((a,b)=>b.length-a.length).map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
-      VREF_RE=new RegExp("(?<![A-Za-z0-9])("+keys.join("|")+")\\s+(\\d+)(?::(\\d+)(?:[-\\u2013\\u2014](\\d+))?)?(?![A-Za-z0-9])","g");
+      VREF_RE=new RegExp("(^|[^A-Za-z0-9])("+keys.join("|")+")\\s+(\\d+)(?::(\\d+)(?:[-\\u2013\\u2014](\\d+))?)?(?![A-Za-z0-9])","g");
     }catch(_){ VREF_RE=null; }
   })();
   function vrefBookId(s){ return vrefMap[s] || vrefMap[String(s||"").replace(/\s+/g," ").trim()] || 0; }
@@ -2632,13 +2632,14 @@ JSON.stringify(lesson),
         VREF_RE.lastIndex=0;
         const frag=document.createDocumentFragment(); let last=0, m, any=false;
         while(m=VREF_RE.exec(text)){
-          const id=vrefBookId(m[1]); if(!id) continue;
+          const lead=m[1]||""; const id=vrefBookId(m[2]); if(!id) continue;
+          const start=m.index+lead.length, refTxt=m[0].slice(lead.length);
           any=true;
-          if(m.index>last) frag.appendChild(document.createTextNode(text.slice(last,m.index)));
-          const s=document.createElement("span"); s.className="vref"; s.textContent=m[0];
-          s.setAttribute("data-b",id); s.setAttribute("data-c",m[2]);
-          if(m[3]) s.setAttribute("data-v",m[3]); if(m[4]) s.setAttribute("data-v2",m[4]);
-          frag.appendChild(s); last=m.index+m[0].length;
+          if(start>last) frag.appendChild(document.createTextNode(text.slice(last,start)));
+          const s=document.createElement("span"); s.className="vref"; s.textContent=refTxt;
+          s.setAttribute("data-b",id); s.setAttribute("data-c",m[3]);
+          if(m[4]) s.setAttribute("data-v",m[4]); if(m[5]) s.setAttribute("data-v2",m[5]);
+          frag.appendChild(s); last=start+refTxt.length;
         }
         if(!any) return;
         if(last<text.length) frag.appendChild(document.createTextNode(text.slice(last)));
