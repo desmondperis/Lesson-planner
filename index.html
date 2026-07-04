@@ -381,7 +381,7 @@
       </div>
 
       <p class="gate-note">Your data is stored in your own Google Drive (a private app folder) and synced across your devices.</p>
-      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted-2);letter-spacing:.04em">Build 2026.06.28-u</div>
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted-2);letter-spacing:.04em">Build 2026.06.28-v</div>
     </div>
   </div>
 
@@ -592,6 +592,14 @@
     <div class="modal-card">
       <h4>Lesson plan — pick a format</h4>
       <p class="hint" style="margin-top:0">A formal lesson-plan table for administrators. “One-page PDF” squeezes the whole plan onto a single page.</p>
+      <div class="field" style="margin-bottom:9px">
+        <label for="planDesig">Your designation</label>
+        <input type="text" id="planDesig" placeholder="e.g. Value Education Teacher" autocomplete="off">
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label for="planPeriod">Time period</label>
+        <input type="text" id="planPeriod" placeholder="e.g. July to August" autocomplete="off">
+      </div>
       <div class="modal-row" style="margin-top:6px">
         <button class="btn x-doc" id="planWord">Word (.docx)</button>
         <button class="btn x-pdf" id="planPdf">PDF</button>
@@ -1302,7 +1310,9 @@ verseRule(inp),
 ' "bookUSFM":"3-letter USFM book code, uppercase (e.g. LUK, JHN, GEN)",',
 ' "chapter":<primary chapter number as integer>,',
 ' "passageText":"the actual verse text of the passage, per the SCRIPTURE TEXT rule",',
-' "objectives":["concrete learning objectives — 2 to 4, fewer for a short session"],',
+' "generalObjective":"one sentence — the broad aim of the session: what students will learn or understand overall",',
+' "objectives":["specific, concrete learning objectives — 2 to 4, fewer for a short session"],',
+' "learningOutcome":"one or two sentences — how students will be able to apply this in real life afterwards (an observable outcome)",',
 ' "context":"one short background paragraph the teacher should know",',
 ' "notes":["teaching points in teaching order, each 1-3 sentences — about 4 for a short session, up to 7-8 for a long one"],',
 ' "crossRefs":[{"ref":"John 3:16","usfm":"JHN","chapter":3,"text":"the actual verse text per the SCRIPTURE TEXT rule","note":"why it connects"}]',
@@ -1325,6 +1335,10 @@ verseRule(inp),
 ' "discussion":["4 to 6 age-appropriate discussion questions"],',
 ' "application":["3 to 4 practical this-week application points"],',
 ' "activity":"one activity, illustration, or object lesson fitting the audience and duration",',
+' "methodology":["teaching methods this lesson uses, e.g. Group activity, Discussion, Case study, Storytelling, Role-play, Games — 2 to 4 suited to the audience and focus"],',
+' "tools":["teaching aids/tools this lesson uses, e.g. PPT, Notes, Videos, Board, Flashcards, Bible"],',
+' "activities":["2 to 4 concrete classroom activities the teacher will run, each based on the methodology above and sized to the duration"],',
+' "assignments":["1 to 3 short assignments or follow-up tasks for students after the class"],',
 ' "videoTopics":["3 to 5 PRECISE, real, well-known teaching-video titles (e.g. from BibleProject, Saddleback Kids, Crossroads Kids Club, Spoken Gospel) so that searching the title lands on that exact video"],',
 ' "memoryVerse":{"ref":"reference","usfm":"3-letter code","chapter":<int>,"text":"the actual verse text per the SCRIPTURE TEXT rule"},',
 ' "prayer":"2-3 sentence closing prayer or prayer points",',
@@ -1364,23 +1378,33 @@ JSON.stringify(lesson),
     out.push("");
     out.push("**Audience:** "+inp.audience+" | **Duration:** "+inp.duration+" | **Version:** "+v.name);
     out.push("");
-    out.push("## Key Passage");
     const vcode = (inp.mode==="en") ? (vById(inp.trans).abbr||"") : "";
+    if(L.generalObjective){ out.push("## General Objective"); out.push(L.generalObjective); out.push(""); }
+    if(L.objectives&&L.objectives.length){ out.push("## Specific Objectives"); L.objectives.forEach(o=>out.push("- "+o)); out.push(""); }
+    if(L.learningOutcome){ out.push("## Learning Outcome"); out.push(L.learningOutcome); out.push(""); }
+    out.push("## Key Passage");
     out.push((L.passageRef||"") + (L.passageRef && vcode ? "  ("+vcode+")" : ""));
     if(L.passageText) out.push(L.passageText);
     out.push("");
-    if(L.objectives&&L.objectives.length){ out.push("## Learning Objectives"); L.objectives.forEach(o=>out.push("- "+o)); out.push(""); }
     if(L.context){ out.push("## Background"); out.push(L.context); out.push(""); }
     if(L.hook){ out.push("## Opening Hook"); out.push(L.hook); out.push(""); }
     if(L.notes&&L.notes.length){ out.push("## Teaching Notes"); L.notes.forEach((n,i)=>out.push((i+1)+". "+n)); out.push(""); }
+    if(L.methodology&&L.methodology.length){ out.push("## Methodology"); L.methodology.forEach(m=>out.push("- "+m)); out.push(""); }
+    if(L.tools&&L.tools.length){ out.push("## Tools"); L.tools.forEach(t=>out.push("- "+t)); out.push(""); }
     if(L.crossRefs&&L.crossRefs.length){
       out.push("## Cross References");
       L.crossRefs.forEach(x=>{ const tx=x.text?(' — "'+x.text+'"'):''; const nt=x.note?(" — "+x.note):''; out.push("- "+x.ref+tx+nt); });
       out.push("");
     }
     if(L.discussion&&L.discussion.length){ out.push("## Discussion Questions"); L.discussion.forEach(q=>out.push("- "+q)); out.push(""); }
+    if((L.activities&&L.activities.length)||L.activity){
+      out.push("## Activities");
+      if(L.activity) out.push(L.activity);
+      if(L.activities&&L.activities.length) L.activities.forEach(a=>out.push("- "+a));
+      out.push("");
+    }
     if(L.application&&L.application.length){ out.push("## Application"); L.application.forEach(a=>out.push("- "+a)); out.push(""); }
-    if(L.activity){ out.push("## Activity / Illustration"); out.push(L.activity); out.push(""); }
+    if(L.assignments&&L.assignments.length){ out.push("## Assignments"); L.assignments.forEach(a=>out.push("- "+a)); out.push(""); }
     if(L.videoTopics&&L.videoTopics.length){
       out.push("## Video Resources");
       L.videoTopics.forEach(t=>{ const yt="https://www.youtube.com/results?search_query="+encodeURIComponent(t); out.push("- "+t+"  ·  YouTube: "+yt); });
@@ -1427,7 +1451,8 @@ JSON.stringify(lesson),
   const ICON={
     "Key Passage":'📖',"Learning Objectives":'◎',"Background":'▦',"Opening Hook":'❯',
     "Teaching Notes":'✎',"Cross References":'🔗',"Discussion Questions":'💬',"Application":'✔',
-    "Activity / Illustration":'✲',"Video Resources":'▷',"Memory Verse":'❝',"Closing Prayer":'☐'
+    "Activity / Illustration":'✲',"Video Resources":'▷',"Memory Verse":'❝',"Closing Prayer":'☐',
+    "General Objective":'◎',"Specific Objectives":'◉',"Learning Outcome":'✦',"Methodology":'❖',"Tools":'▤',"Activities":'✲',"Assignments":'☑'
   };
   function linksHTML(links){ return (links||[]).map(l=>'<a class="yv" href="'+l.url+'" target="_blank" rel="noopener">'+esc(l.label)+' ↗</a>').join(""); }
   function renderCard(p, hiClass){
@@ -1477,43 +1502,49 @@ JSON.stringify(lesson),
   let planCompact=false;
   function buildPlanBody(p, compact){
     const get=t=>p.sections.find(s=>s.title===t)||{items:[],paras:[]};
-    const objectives=get("Learning Objectives").items;
-    const hook=(get("Opening Hook").paras[0]||{}).text||"";
-    const notes=get("Teaching Notes").items;
-    const discussion=get("Discussion Questions").items;
-    const application=get("Application").items;
-    const activity=(get("Activity / Illustration").paras[0]||{}).text||"";
-    const memory=get("Memory Verse").paras.map(x=>x.text).join("  ");
-    const passage=(get("Key Passage").paras[0]||get("Key Passage").items[0]||{}).text||"";
-    const meta = (p.meta||"").split("|").reduce((a,s)=>{const i=s.indexOf(":");if(i>0)a[s.slice(0,i).trim()]=s.slice(i+1).trim();return a;},{});
+    const paraText=t=>get(t).paras.map(x=>x.text).join(" ").trim();
+    const genObj=paraText("General Objective");
+    const specObj=get("Specific Objectives").items;
+    const outcome=paraText("Learning Outcome");
+    const methodology=get("Methodology").items;
+    const tools=get("Tools").items;
+    const actSec=get("Activities");
+    const activityLead=(actSec.paras[0]||{}).text||"";
+    const activities=actSec.items;
+    const assignments=get("Assignments").items;
+    const teacher=(currentDisplayName||"").trim();
+    const desig=lsGet("lp_desig").trim();
+    const period=lsGet("lp_period").trim();
     const fs = compact ? "10.5px" : "12.5px";
-    const pad = compact ? "3px 7px" : "6px 8px";
-    const kw = compact ? "140px" : "170px";
-    const li = arr => arr&&arr.length ? '<ul style="margin:3px 0;padding-left:18px">'+arr.map(x=>'<li>'+esc(x.text||x)+'</li>').join("")+'</ul>' : '<span style="color:#999">—</span>';
-    const row=(k,v)=>'<tr><td style="border:1px solid #c4ccdc;padding:'+pad+';background:#eef2fa;font-weight:bold;width:'+kw+';vertical-align:top">'+k+'</td><td style="border:1px solid #c4ccdc;padding:'+pad+';vertical-align:top">'+v+'</td></tr>';
+    const pad = compact ? "3px 8px" : "6px 9px";
+    const numw = compact ? "22px" : "28px";
+    const kw = compact ? "118px" : "150px";
+    const dash='<span style="color:#999">—</span>';
+    const li = arr => arr&&arr.length ? '<ul style="margin:3px 0;padding-left:18px">'+arr.map(x=>'<li>'+esc(x.text||x)+'</li>').join("")+'</ul>' : dash;
+    const actCell = () => {
+      if(!activityLead && !(activities&&activities.length)) return dash;
+      let s=""; if(activityLead) s+='<p style="margin:0 0 4px">'+esc(activityLead)+'</p>'; if(activities&&activities.length) s+=li(activities); return s;
+    };
+    const row=(n,k,v)=>'<tr>'
+      +'<td style="border:1px solid #c4ccdc;padding:'+pad+';background:#eef2fa;font-weight:bold;text-align:center;width:'+numw+';vertical-align:top">'+n+'</td>'
+      +'<td style="border:1px solid #c4ccdc;padding:'+pad+';background:#f6f8fc;font-weight:bold;width:'+kw+';vertical-align:top">'+k+'</td>'
+      +'<td style="border:1px solid #c4ccdc;padding:'+pad+';vertical-align:top">'+v+'</td></tr>';
     let body=schoolHeader(false);
     body+='<p style="text-align:center;font-family:Georgia,serif;font-size:'+(compact?"12px":"14px")+';letter-spacing:3px;color:#6c6553;text-transform:uppercase;margin:0 0 '+(compact?"1px":"3px")+'">Value Education</p>';
-    body+='<h1 style="text-align:center;font-family:Georgia,serif;font-size:'+(compact?"16px":"19px")+';margin:0 0 '+(compact?"8px":"14px")+';letter-spacing:1px;color:#34539b">LESSON PLAN</h1>';
+    body+='<h1 style="text-align:center;font-family:Georgia,serif;font-size:'+(compact?"16px":"19px")+';margin:0 0 '+(compact?"5px":"8px")+';letter-spacing:1px;color:#34539b">LESSON PLAN</h1>';
+    body+='<p style="text-align:center;font-size:'+(compact?"12px":"14px")+';margin:0 0 2px"><strong>'+(teacher?esc(teacher):"&nbsp;")+'</strong>'+(desig?' <span style="font-weight:normal;color:#555">— '+esc(desig)+'</span>':'')+'</p>';
+    body+='<p style="text-align:center;font-size:'+(compact?"10.5px":"12.5px")+';color:#555;margin:0 0 '+(compact?"8px":"12px")+'">Time period: '+(period?esc(period):"____________")+'</p>';
     body+='<table style="border-collapse:collapse;width:100%;font-size:'+fs+'">';
-    const _teacher=(currentDisplayName||"").trim();
-    body+=row("Teacher", _teacher?esc(_teacher):"&nbsp;");
-    body+=row("Date",esc(today()));
-    body+=row("Class / Audience",esc(meta["Audience"]||""));
-    body+=row("Duration",esc(meta["Duration"]||""));
-    body+=row("Subject","Value Education / Scripture");
-    body+=row("Topic",esc(p.title));
-    body+=row("Scripture reference",esc(passage));
-    body+=row("Learning objectives",li(objectives));
-    body+=row("Teaching aids / materials",esc(activity? activity : "Bible, board, projector"));
-    body+=row("Introduction",esc(hook||"—"));
-    body+=row("Development / procedure",li(notes));
-    body+=row("Discussion / questions",li(discussion));
-    body+=row("Application",li(application));
-    body+=row("Memory verse",esc(memory||"—"));
-    body+=row("Assessment","Oral questions and class discussion (see above).");
-    body+=row("Teacher's remarks","&nbsp;");
+    body+=row("1","Topic",p.title?esc(p.title):dash);
+    body+=row("2","General objective",genObj?esc(genObj):dash);
+    body+=row("3","Specific objectives",li(specObj));
+    body+=row("4","Learning outcome",outcome?esc(outcome):dash);
+    body+=row("5","Methodology",li(methodology));
+    body+=row("6","Tools",li(tools));
+    body+=row("7","Activities",actCell());
+    body+=row("8","Assignments",li(assignments));
     body+='</table>';
-    body+='<p style="margin-top:'+(compact?"12px":"26px")+';font-size:'+(compact?"11px":"13px")+'">Signature: ____________________&nbsp;&nbsp;&nbsp;&nbsp;Date: '+esc(today())+'</p>';
+    body+='<p style="margin-top:'+(compact?"12px":"24px")+';font-size:'+(compact?"11px":"13px")+'">Signature: ____________________&nbsp;&nbsp;&nbsp;&nbsp;Date: '+esc(today())+'</p>';
     return body;
   }
   function logoB64(){ const m=/^data:image\/png;base64,([\s\S]*)$/.exec(SCHOOL_LOGO||""); return m?m[1]:""; }
@@ -1619,36 +1650,32 @@ JSON.stringify(lesson),
   }
   function planInnerXml(p){
     const get=t=>(p.sections||[]).find(s=>s.title===t)||{items:[],paras:[]};
-    const objectives=get("Learning Objectives").items.map(x=>x.text);
-    const hook=((get("Opening Hook").paras[0])||{}).text||"";
-    const notes=get("Teaching Notes").items.map(x=>x.text);
-    const discussion=get("Discussion Questions").items.map(x=>x.text);
-    const application=get("Application").items.map(x=>x.text);
-    const activity=((get("Activity / Illustration").paras[0])||{}).text||"";
-    const memory=get("Memory Verse").paras.map(x=>x.text).join("  ");
-    const passage=((get("Key Passage").paras[0]||get("Key Passage").items[0])||{}).text||"";
-    const meta=(p.meta||"").split("|").reduce((a,s)=>{const i=s.indexOf(":");if(i>0)a[s.slice(0,i).trim()]=s.slice(i+1).trim();return a;},{});
+    const paraText=t=>get(t).paras.map(x=>x.text).join(" ").trim();
+    const genObj=paraText("General Objective");
+    const specObj=get("Specific Objectives").items.map(x=>x.text);
+    const outcome=paraText("Learning Outcome");
+    const methodology=get("Methodology").items.map(x=>x.text);
+    const tools=get("Tools").items.map(x=>x.text);
+    const actSec=get("Activities");
+    const activities=actSec.paras.map(x=>x.text).concat(actSec.items.map(x=>x.text)).filter(Boolean);
+    const assignments=get("Assignments").items.map(x=>x.text);
     const teacher=(currentDisplayName||"").trim();
+    const desig=lsGet("lp_desig").trim();
+    const period=lsGet("lp_period").trim();
     let x=_docHeaderXml();
     x+=_para({runs:[{text:"VALUE EDUCATION",sz:20,color:"6C6553"}],align:"center",spaceBefore:60,spaceAfter:0});
-    x+=_para({runs:[{text:"LESSON PLAN",b:true,sz:30,color:"34539B"}],align:"center",spaceBefore:20,spaceAfter:140});
+    x+=_para({runs:[{text:"LESSON PLAN",b:true,sz:30,color:"34539B"}],align:"center",spaceBefore:20,spaceAfter:40});
+    x+=_para({runs:[{text:(teacher||" "),b:true,sz:24}].concat(desig?[{text:"  —  "+desig,sz:22,color:"555555"}]:[]),align:"center",spaceBefore:0,spaceAfter:20});
+    x+=_para({runs:[{text:"Time period: "+(period||"____________"),sz:20,color:"555555"}],align:"center",spaceBefore:0,spaceAfter:140});
     const rows=[
-      ["Teacher", teacher||"—"],
-      ["Date", today()],
-      ["Class / Audience", meta["Audience"]||"—"],
-      ["Duration", meta["Duration"]||"—"],
-      ["Subject", "Value Education / Scripture"],
-      ["Topic", p.title||"—"],
-      ["Scripture reference", passage||"—"],
-      ["Learning objectives", objectives],
-      ["Teaching aids / materials", activity ? activity : "Bible, board, projector"],
-      ["Introduction", hook||"—"],
-      ["Development / procedure", notes],
-      ["Discussion / questions", discussion],
-      ["Application", application],
-      ["Memory verse", memory||"—"],
-      ["Assessment", "Oral questions and class discussion (see above)."],
-      ["Teacher's remarks", " "]
+      ["1. Topic", p.title||"—"],
+      ["2. General objective", genObj||"—"],
+      ["3. Specific objectives", specObj.length?specObj:"—"],
+      ["4. Learning outcome", outcome||"—"],
+      ["5. Methodology", methodology.length?methodology:"—"],
+      ["6. Tools", tools.length?tools:"—"],
+      ["7. Activities", activities.length?activities:"—"],
+      ["8. Assignments", assignments.length?assignments:"—"]
     ];
     x+=_tableXml(rows);
     x+=_para({runs:[{text:"Signature: ____________________      Date: "+today(),sz:22}],spaceBefore:240});
@@ -2524,11 +2551,12 @@ JSON.stringify(lesson),
   });
 
   // plan format choice (Word or PDF)
-  if($("planBtn")) $("planBtn").addEventListener("click", ()=>{ if(!currentLesson){ showError("Build a lesson first."); return; } if($("planModal")) $("planModal").style.display="flex"; });
+  function savePlanMeta(){ if($("planDesig")) lsSet("lp_desig", $("planDesig").value.trim()); if($("planPeriod")) lsSet("lp_period", $("planPeriod").value.trim()); }
+  if($("planBtn")) $("planBtn").addEventListener("click", ()=>{ if(!currentLesson){ showError("Build a lesson first."); return; } if($("planDesig")) $("planDesig").value=lsGet("lp_desig"); if($("planPeriod")) $("planPeriod").value=lsGet("lp_period"); if($("planModal")) $("planModal").style.display="flex"; });
   if($("planCancel")) $("planCancel").addEventListener("click", ()=>{ $("planModal").style.display="none"; });
-  if($("planWord")) $("planWord").addEventListener("click", ()=>{ planCompact=false; $("planModal").style.display="none"; requestExport("plan"); });
-  if($("planPdf")) $("planPdf").addEventListener("click", ()=>{ planCompact=false; $("planModal").style.display="none"; requestExport("planpdf"); });
-  if($("planOnePdf")) $("planOnePdf").addEventListener("click", ()=>{ planCompact=true; $("planModal").style.display="none"; requestExport("planpdf"); });
+  if($("planWord")) $("planWord").addEventListener("click", ()=>{ savePlanMeta(); planCompact=false; $("planModal").style.display="none"; requestExport("plan"); });
+  if($("planPdf")) $("planPdf").addEventListener("click", ()=>{ savePlanMeta(); planCompact=false; $("planModal").style.display="none"; requestExport("planpdf"); });
+  if($("planOnePdf")) $("planOnePdf").addEventListener("click", ()=>{ savePlanMeta(); planCompact=true; $("planModal").style.display="none"; requestExport("planpdf"); });
 
   // share / LMS
   const HOSTED = (location.protocol==="http:"||location.protocol==="https:");
