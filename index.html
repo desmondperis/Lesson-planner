@@ -381,7 +381,7 @@
       </div>
 
       <p class="gate-note">Your data is stored in your own Google Drive (a private app folder) and synced across your devices.</p>
-      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted-2);letter-spacing:.04em">Build 2026.06.28-z</div>
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted-2);letter-spacing:.04em">Build 2026.07.04-a</div>
     </div>
   </div>
 
@@ -494,9 +494,7 @@
         <label for="translation">Bible version</label>
         <select id="translation"></select>
       </div>
-    </div>
-    <div id="modelWrap" style="margin-top:2px;">
-      <div class="field">
+      <div class="field" id="modelWrap">
         <label for="model">AI model</label>
         <select id="model">
           <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash — free tier</option>
@@ -507,18 +505,14 @@
           <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro — flagship*</option>
         </select>
       </div>
-      <input type="hidden" id="geminiKey">
-      <p class="hint" style="margin-top:6px">Free tier covers 2.5 Flash; models marked * need billing. Your AI service &amp; key are set from the menu.</p>
-    </div>
-    <div id="altWrap" style="display:none;margin-top:2px;">
-      <div class="field">
+      <div class="field" id="altWrap" style="display:none">
         <label for="altModel">AI model</label>
         <select id="altModel"></select>
       </div>
+      <input type="hidden" id="geminiKey">
       <input type="hidden" id="altKey">
-      <p class="hint" id="provHint" style="margin-top:6px"></p>
     </div>
-    <div class="hint">Models marked * may need billing enabled on your key. Your key stays only on this device, never in the file.</div>
+    <div class="hint" style="margin-top:8px">Models marked * need billing enabled on your key. Your AI service &amp; key are set from the menu.</div>
 
     <div class="field" style="margin-top:14px">
       <label for="styleNote">Notes for the AI — style or format <span style="font-weight:400;color:var(--muted-2)">(optional)</span></label>
