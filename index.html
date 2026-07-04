@@ -381,7 +381,7 @@
       </div>
 
       <p class="gate-note">Your data is stored in your own Google Drive (a private app folder) and synced across your devices.</p>
-      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted-2);letter-spacing:.04em">Build 2026.06.28-w</div>
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted-2);letter-spacing:.04em">Build 2026.06.28-y</div>
     </div>
   </div>
 
@@ -1051,7 +1051,7 @@
     const url="https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent?key="+encodeURIComponent(key||GEMINI_API_KEY);
     const parts=[{text:prompt}];
     if(images&&images.length) images.forEach(im=>parts.push({inlineData:{mimeType:im.mime, data:im.b64}}));
-    const body=JSON.stringify({contents:[{role:"user",parts:parts}], generationConfig:{temperature:0.7,maxOutputTokens:8192,responseMimeType:"application/json"}});
+    const body=JSON.stringify({contents:[{role:"user",parts:parts}], generationConfig:{temperature:0.7,maxOutputTokens:8192,responseMimeType:"application/json"}, safetySettings:[{category:"HARM_CATEGORY_HARASSMENT",threshold:"BLOCK_NONE"},{category:"HARM_CATEGORY_HATE_SPEECH",threshold:"BLOCK_NONE"},{category:"HARM_CATEGORY_SEXUALLY_EXPLICIT",threshold:"BLOCK_NONE"},{category:"HARM_CATEGORY_DANGEROUS_CONTENT",threshold:"BLOCK_NONE"}]});
     for(let attempt=0; attempt<4; attempt++){
       let res;
       try{ res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body}); }
@@ -1060,7 +1060,7 @@
         const data=await res.json();
         const c=(data.candidates&&data.candidates[0])||null;
         const txt=c&&c.content&&c.content.parts?c.content.parts.map(p=>p.text||"").join(""):"";
-        if(!txt){ const fr=c&&c.finishReason; if(fr==="SAFETY"||fr==="RECITATION") throw new Error("blocked"); if(attempt<3){ await sleep(600); continue; } throw new Error("empty"); }
+        if(!txt){ const fr=c&&c.finishReason; if(attempt<3){ await sleep(600); continue; } if(fr==="SAFETY"||fr==="RECITATION") throw new Error("blocked"); throw new Error("empty"); }
         return txt;
       }
       if((res.status===429||res.status===500||res.status===503||res.status===502||res.status===504) && attempt<3){ await sleep(900*(attempt+1)); continue; }
@@ -2207,172 +2207,51 @@ JSON.stringify(lesson),
   }
 
   // ---------- 2) Related scripture (curated, offline, no tokens) ----------
-  const SX=[
-    {k:["forgiv","grudge","reconcile","pardon"], r:["Matthew 18:21-35","Ephesians 4:31-32","Colossians 3:13","Matthew 6:14-15","Luke 23:34","Psalm 103:8-12","1 John 1:9"]},
-    {k:["love","compassion","care for","caring"], r:["1 Corinthians 13:4-7","John 13:34-35","1 John 4:7-12","Romans 12:9-10","Mark 12:30-31","John 3:16","1 John 4:19"]},
-    {k:["kind","gentle","gentleness"], r:["Ephesians 4:32","Colossians 3:12","Galatians 5:22-23","Proverbs 11:17","Luke 6:35","Zechariah 7:9"]},
-    {k:["courage","brave","fear","afraid","bold","scared"], r:["Joshua 1:9","Psalm 27:1","Isaiah 41:10","2 Timothy 1:7","Deuteronomy 31:6","Psalm 56:3"]},
-    {k:["honest","truth","truthful","lie","integrity","cheat"], r:["Proverbs 12:22","Ephesians 4:25","Colossians 3:9-10","Proverbs 10:9","Psalm 15:1-2","John 8:31-32"]},
-    {k:["faith","believe","trust","doubt"], r:["Hebrews 11:1","Hebrews 11:6","Proverbs 3:5-6","Mark 11:22-24","2 Corinthians 5:7","Matthew 17:20","Romans 10:17"]},
-    {k:["hope","despair","discourag","hopeless"], r:["Romans 15:13","Jeremiah 29:11","Romans 8:24-25","Lamentations 3:22-24","Psalm 42:11","Isaiah 40:31"]},
-    {k:["obey","obedien","listen to","disobey"], r:["Ephesians 6:1-3","1 Samuel 15:22","John 14:15","Deuteronomy 5:16","Hebrews 13:17","James 1:22","Acts 5:29"]},
-    {k:["gratitude","thank","grateful","thankful"], r:["1 Thessalonians 5:18","Psalm 100:4-5","Colossians 3:15-17","Philippians 4:6","Psalm 107:1","Luke 17:11-19"]},
-    {k:["humil","humble","pride","proud","boast"], r:["Philippians 2:3-8","James 4:6-10","Proverbs 16:18","1 Peter 5:5-6","Micah 6:8","Proverbs 22:4"]},
-    {k:["patien","wait","waiting"], r:["James 1:2-4","Romans 12:12","Galatians 6:9","Psalm 37:7","Ecclesiastes 7:8","Lamentations 3:25-26"]},
-    {k:["persever","endur","give up","quit","persist","keep going"], r:["Galatians 6:9","James 1:12","Hebrews 12:1-2","Romans 5:3-5","Philippians 3:13-14","1 Corinthians 9:24-27"]},
-    {k:["wisdom","wise","decision","choice","foolish","choose"], r:["Proverbs 1:7","James 1:5","Proverbs 3:13-18","Proverbs 9:10","Ecclesiastes 12:13","Proverbs 4:7"]},
-    {k:["friend","friendship","companion"], r:["Proverbs 17:17","Proverbs 27:17","John 15:13-15","Ecclesiastes 4:9-12","1 Samuel 18:1-3","Proverbs 18:24"]},
-    {k:["generos","giving","share","selfish","charity","give"], r:["Acts 20:35","2 Corinthians 9:6-7","Proverbs 11:24-25","Luke 6:38","1 Timothy 6:17-19","Proverbs 19:17","Hebrews 13:16"]},
-    {k:["pray","prayer","intercession"], r:["Matthew 6:9-13","Philippians 4:6-7","1 Thessalonians 5:16-18","James 5:16","Luke 11:9-10","Jeremiah 33:3"]},
-    {k:["creation","nature","environment","earth","animals","planet"], r:["Genesis 1:1","Genesis 1:26-31","Psalm 19:1","Psalm 8:3-9","Colossians 1:16-17","Genesis 2:15","Romans 1:20"]},
-    {k:["commandment","ten command","the law"], r:["Exodus 20:1-17","Deuteronomy 6:4-9","Matthew 22:36-40","Romans 13:8-10","Psalm 119:105","Psalm 1:1-3"]},
-    {k:["beatitude","blessed","sermon on the mount"], r:["Matthew 5:1-12","Matthew 5:13-16","Matthew 6:19-21","Matthew 7:7-12","Matthew 7:24-27","Luke 6:20-26"]},
-    {k:["good samaritan","neighbour","neighbor","help others"], r:["Luke 10:25-37","James 2:14-17","Galatians 6:2","Matthew 25:35-40","Proverbs 3:27-28","1 John 3:17-18"]},
-    {k:["prodigal","lost son","repent","coming home","return to god"], r:["Luke 15:11-32","Luke 15:1-7","2 Corinthians 7:10","1 John 1:9","Psalm 51:1-12","Acts 3:19","Joel 2:12-13"]},
-    {k:["peace","worry","anxiet","calm","stress","troubled"], r:["Philippians 4:6-7","John 14:27","Isaiah 26:3","Matthew 6:25-34","Psalm 23","1 Peter 5:7"]},
-    {k:["joy","happy","happiness","joyful","rejoice","gladness"], r:["Philippians 4:4","Nehemiah 8:10","Psalm 16:11","John 15:11","Galatians 5:22-23","Psalm 30:5"]},
-    {k:["self-control","temptation","anger","angry","temper","patience with"], r:["Galatians 5:22-23","Proverbs 16:32","James 1:19-20","1 Corinthians 10:13","Ephesians 4:26-27","Proverbs 15:1"]},
-    {k:["respect","authority","parents","elders","teacher"], r:["Romans 13:1-7","1 Peter 2:17","Ephesians 6:1-4","Leviticus 19:32","Hebrews 13:17","1 Timothy 5:1-2"]},
-    {k:["work","diligen","lazy","effort","study","school","hardworking"], r:["Colossians 3:23-24","Proverbs 6:6-11","Ecclesiastes 9:10","Proverbs 12:24","2 Thessalonians 3:10","Proverbs 13:4"]},
-    {k:["money","greed","content","posses","wealth","rich"], r:["1 Timothy 6:6-10","Hebrews 13:5","Matthew 6:24","Philippians 4:11-13","Proverbs 30:8-9","Luke 12:15","Matthew 6:19-21"]},
-    {k:["service","serve","leader","leadership","helping"], r:["Mark 10:42-45","John 13:1-17","Philippians 2:3-7","Galatians 5:13","Matthew 20:26-28","1 Peter 4:10"]},
-    {k:["unity","togeth","team","division","quarrel","conflict"], r:["Psalm 133:1","1 Corinthians 12:12-27","Ephesians 4:1-6","Philippians 2:1-2","Colossians 3:14","John 17:20-23"]},
-    {k:["identity","who am i","worth","value","fearfully","self-esteem","self-worth"], r:["Psalm 139:13-16","Genesis 1:27","Ephesians 2:10","Jeremiah 1:5","1 Peter 2:9","Isaiah 43:1","2 Corinthians 5:17"]},
-    {k:["gospel","salvation","saved","born again","eternal life"], r:["John 3:16-17","Romans 5:8","Ephesians 2:8-9","Romans 10:9-10","1 Corinthians 15:3-4","Titus 3:5","Acts 4:12"]},
-    {k:["holy spirit","fruit of the spirit","comforter"], r:["Galatians 5:22-23","John 14:26","Acts 1:8","Romans 8:9-11","1 Corinthians 6:19-20","John 16:13","Acts 2:1-4"]},
-    {k:["grace","mercy","undeserved","forgiven"], r:["Ephesians 2:4-9","Titus 3:4-7","Lamentations 3:22-23","Hebrews 4:16","Romans 3:23-24","2 Corinthians 12:9","Romans 5:20-21"]},
-    {k:["light","shine","darkness","lamp","witness","example"], r:["1 John 1:5-7","John 8:12","Matthew 5:14-16","John 1:4-5","Psalm 119:105","Ephesians 5:8-9","Isaiah 9:2"]},
-    {k:["sin","guilt","confess","wrongdoing","sinful"], r:["1 John 1:8-9","Romans 3:23","Psalm 51:1-12","Isaiah 1:18","Romans 6:23","James 5:16","Proverbs 28:13"]},
-    {k:["family","home","marriage","household"], r:["Joshua 24:15","Ephesians 5:21-6:4","Psalm 127:1-5","Proverbs 22:6","Colossians 3:18-21","Deuteronomy 6:6-7"]},
-    {k:["jealous","envy","covet","comparison","compare"], r:["Exodus 20:17","James 3:14-16","Galatians 5:26","Proverbs 14:30","1 Corinthians 13:4","Galatians 6:4-5"]},
-    {k:["bully","mock","tease","exclude","mean to","cruel"], r:["Ephesians 4:29","Luke 6:31","Proverbs 15:1","Romans 12:17-21","1 Thessalonians 5:11","Matthew 7:12"]},
-    {k:["words","tongue","speech","gossip","slander","talk"], r:["James 3:1-12","Proverbs 18:21","Ephesians 4:29","Proverbs 15:1-4","Colossians 4:6","Psalm 19:14","Proverbs 21:23"]},
-    {k:["shame","condemn","regret","not good enough"], r:["Romans 8:1","Psalm 103:8-12","Isaiah 43:25","1 John 3:19-20","Micah 7:18-19","Hebrews 10:17"]},
-    {k:["sermon","preach","congregation","proclaim"], r:["2 Timothy 4:1-5","Romans 10:14-17","Nehemiah 8:1-8","Acts 2:14-41","1 Corinthians 1:18-25","Isaiah 55:10-11"]},
-    {k:["christmas","birth of jesus","nativity","manger","bethlehem","incarnation"], r:["Luke 2:1-20","Matthew 1:18-25","Matthew 2:1-12","Isaiah 9:6","John 1:14","Micah 5:2"]},
-    {k:["easter","resurrection","risen","empty tomb"], r:["Matthew 28:1-10","Luke 24:1-12","John 20:1-18","1 Corinthians 15:3-8","Romans 6:8-11","Mark 16:1-7"]},
-    {k:["cross","crucif","calvary","good friday","atonement"], r:["John 19:16-30","Luke 23:32-46","Isaiah 53:3-6","1 Peter 2:24","Matthew 27:32-54","Galatians 2:20"]},
-    {k:["image of god","made in","imago"], r:["Genesis 1:26-27","Psalm 8:4-6","Genesis 2:7","James 3:9","Colossians 3:10"]},
-    {k:["goliath","giant","david","underdog","facing challenge"], r:["1 Samuel 17:1-50","1 Samuel 17:45-47","Psalm 144:1","1 Samuel 16:7"]},
-    {k:["noah","ark","flood","rainbow"], r:["Genesis 6:9-22","Genesis 7:1-5","Genesis 9:8-17","Hebrews 11:7","2 Peter 2:5"]},
-    {k:["moses","exodus","red sea","pharaoh","deliver","burning bush"], r:["Exodus 3:1-15","Exodus 14:13-31","Deuteronomy 34:10-12","Hebrews 11:24-27"]},
-    {k:["daniel","lion","lions den","faithful under"], r:["Daniel 6:1-23","Daniel 1:8-20","Daniel 3:16-18"]},
-    {k:["furnace","shadrach","meshach","abednego","stand firm"], r:["Daniel 3:1-30","Daniel 3:16-18","1 Peter 4:12-14"]},
-    {k:["joseph","coat","egypt","brothers","providence"], r:["Genesis 37:1-28","Genesis 45:1-15","Genesis 50:15-21","Romans 8:28"]},
-    {k:["jonah","whale","nineveh","big fish","second chance"], r:["Jonah 1:1-17","Jonah 2:1-10","Jonah 3:1-10","Jonah 4:1-11","Matthew 12:40"]},
-    {k:["zacchaeus","tax collector","changed life"], r:["Luke 19:1-10","2 Corinthians 5:17"]},
-    {k:["feeding","five thousand","5000","loaves","fishes","provision"], r:["Matthew 14:13-21","John 6:1-14","Mark 6:30-44","Philippians 4:19"]},
-    {k:["sower","seed","soil","receive the word"], r:["Matthew 13:1-23","Mark 4:1-20","Luke 8:4-15"]},
-    {k:["talent","stewardship","gifts","steward"], r:["Matthew 25:14-30","Luke 19:11-27","1 Peter 4:10-11","1 Corinthians 4:2"]},
-    {k:["shepherd","sheep","guide","guidance","lost sheep"], r:["Psalm 23","John 10:1-18","Luke 15:3-7","Isaiah 40:11","Ezekiel 34:11-16"]},
-    {k:["vine","branches","abide","remain","stay close"], r:["John 15:1-8","Psalm 1:1-3","Colossians 2:6-7"]},
-    {k:["great commission","make disciples","mission","evangelism","tell the world"], r:["Matthew 28:18-20","Mark 16:15","Acts 1:8","Romans 10:14-15","Isaiah 6:8"]},
-    {k:["armor","armour of god","spiritual war","spiritual battle"], r:["Ephesians 6:10-18","2 Corinthians 10:3-5","1 Peter 5:8-9","James 4:7"]},
-    {k:["sabbath","rest","tired","busy","weary","burnout"], r:["Matthew 11:28-30","Exodus 20:8-11","Genesis 2:2-3","Mark 2:27","Psalm 46:10"]},
-    {k:["heal","sick","illness","disease","sickness"], r:["James 5:14-15","Psalm 103:2-3","Matthew 4:23-24","Isaiah 53:5","Jeremiah 17:14"]},
-    {k:["death","grief","mourn","loss","comfort","dying","bereave"], r:["John 11:25-26","Psalm 23:4","Revelation 21:4","2 Corinthians 1:3-4","1 Thessalonians 4:13-14","Matthew 5:4"]},
-    {k:["heaven","eternity","eternal","forever","afterlife"], r:["John 14:1-3","Revelation 21:1-4","1 Corinthians 2:9","Philippians 3:20-21","2 Corinthians 5:1"]},
-    {k:["faithful","promise","dependable","keeps his word"], r:["Lamentations 3:22-23","Deuteronomy 7:9","2 Timothy 2:13","Hebrews 10:23","Numbers 23:19","Joshua 21:45"]},
-    {k:["god loves","loved by god","gods love","unconditional"], r:["John 3:16","Romans 8:38-39","1 John 4:9-10","Zephaniah 3:17","Jeremiah 31:3","Psalm 136:1"]},
-    {k:["worship","praise","sing","glorify","adore"], r:["Psalm 100","Psalm 95:1-7","John 4:23-24","Psalm 150","Romans 12:1","Hebrews 13:15"]},
-    {k:["scripture","word of god","gods word","bible study","reading the bible"], r:["2 Timothy 3:16-17","Psalm 119:105","Hebrews 4:12","Joshua 1:8","Psalm 1:1-3","Matthew 4:4","Isaiah 40:8"]},
-    {k:["temptation","tempted","resist","give in"], r:["1 Corinthians 10:13","James 1:13-15","Matthew 4:1-11","Hebrews 4:15","James 4:7","Matthew 26:41"]},
-    {k:["testimony","share faith","tell others","witness to"], r:["1 Peter 3:15","Acts 1:8","Mark 5:19","Psalm 66:16","Romans 1:16"]},
-    {k:["poor","justice","needy","oppressed","fairness","unjust"], r:["Proverbs 31:8-9","Micah 6:8","Isaiah 1:17","Matthew 25:35-40","James 1:27","Proverbs 14:31","Luke 4:18"]},
-    {k:["widow","orphan","elderly","vulnerable","alone"], r:["James 1:27","Psalm 68:5","Isaiah 1:17","1 Timothy 5:3-4","Deuteronomy 10:18"]},
-    {k:["beauty","appearance","looks","outward"], r:["1 Samuel 16:7","1 Peter 3:3-4","Proverbs 31:30","Psalm 139:14"]},
-    {k:["failure","mistake","fail","fall down","messed up"], r:["Proverbs 24:16","Micah 7:8","Philippians 3:13-14","Psalm 37:23-24","2 Corinthians 12:9"]},
-    {k:["responsib","chores","duty","reliable","trustworthy"], r:["Colossians 3:23-24","Luke 16:10","Galatians 6:5","Proverbs 25:19","1 Corinthians 4:2"]},
-    {k:["enemy","enemies","revenge","hatred","hate","get back"], r:["Matthew 5:43-48","Romans 12:17-21","Luke 6:27-28","Proverbs 25:21-22","1 Peter 3:9"]},
-    {k:["in trouble","distress","help me","cry out","desperate"], r:["Psalm 46:1","Psalm 121","Psalm 91","Psalm 34:17-19","Nahum 1:7","Isaiah 41:13"]},
-    {k:["blessing","provision","provide","daily bread"], r:["James 1:17","Psalm 103:1-5","Ephesians 1:3","Philippians 4:19","Matthew 6:31-33"]},
-    {k:["suffering","trial","hardship","pain","why do","hard times"], r:["Romans 8:28","James 1:2-4","2 Corinthians 4:16-18","1 Peter 1:6-7","Romans 5:3-5","Psalm 34:18"]},
-    {k:["fathers love","welcomed back","gods father","adopt"], r:["Luke 15:11-32","Psalm 103:13","1 John 3:1","Romans 8:15"]},
-    {k:["new beginning","fresh start","new year","change","start over"], r:["2 Corinthians 5:17","Lamentations 3:22-23","Isaiah 43:18-19","Philippians 3:13-14","Ezekiel 36:26","Revelation 21:5"]},
-    {k:["peer pressure","stand for","beliefs","conviction","go along"], r:["Acts 5:29","Daniel 1:8","Romans 12:2","Joshua 24:15","1 Corinthians 15:58","Galatians 1:10"]},
-    {k:["who is jesus","son of god","deity of christ","jesus is god"], r:["John 1:1-14","Colossians 1:15-20","Hebrews 1:1-3","John 14:6","Philippians 2:5-11","John 8:58"]},
-    {k:["trinity","father son spirit","godhead","three in one"], r:["Matthew 28:19","2 Corinthians 13:14","John 14:16-17","Genesis 1:26","1 Peter 1:2"]},
-    {k:["second coming","return of christ","end times","last days"], r:["Acts 1:11","1 Thessalonians 4:16-17","Matthew 24:36-44","Revelation 22:12","Titus 2:13","John 14:3"]},
-    {k:["baptism","baptized","baptise"], r:["Matthew 28:19","Romans 6:3-4","Acts 2:38","Mark 1:9-11","Colossians 2:12"]},
-    {k:["lords supper","communion","breaking bread","last supper"], r:["Luke 22:14-20","1 Corinthians 11:23-26","Matthew 26:26-29","John 6:53-58"]},
-    {k:["ten lepers","leper","healed and thankful"], r:["Luke 17:11-19","Psalm 103:1-5"]},
-    {k:["prayer of jesus","lords prayer","our father"], r:["Matthew 6:9-13","Luke 11:1-4"]},
-    {k:["life","abundant life","meaning of life","purpose of life","reason to live","whole life"], r:["John 10:10","John 14:6","Psalm 139:13-16","Ecclesiastes 12:13","Galatians 2:20","Philippians 1:21","Deuteronomy 30:19-20"]},
-    {k:["strength","strong","weak","weakness","exhausted","worn out","no energy"], r:["Isaiah 40:29-31","Philippians 4:13","2 Corinthians 12:9-10","Psalm 28:7","Ephesians 6:10","Nehemiah 8:10","Psalm 73:26"]},
-    {k:["freedom","liberty","set free","set me free","trapped"], r:["John 8:31-36","Galatians 5:1","2 Corinthians 3:17","Romans 6:18-22","Psalm 119:45","Isaiah 61:1"]},
-    {k:["sad","sadness","lonely","loneli","feeling down","downcast","depress","empty inside"], r:["Psalm 34:18","Psalm 42:11","Psalm 147:3","Matthew 11:28-30","Isaiah 41:10","2 Corinthians 1:3-4","Deuteronomy 31:8"]},
-    {k:["goodness","being good","do good","do what is right","do the right thing"], r:["Galatians 5:22-23","Psalm 23:6","Romans 12:21","Ephesians 2:10","Titus 2:7-8","Micah 6:8","Psalm 34:14"]},
-    {k:["disciplin","self-discipline","correction","train up","good habits"], r:["Hebrews 12:5-11","Proverbs 13:24","1 Corinthians 9:24-27","Proverbs 25:28","2 Timothy 1:7","Proverbs 12:1"]},
-    {k:["rules","law","law of god","gods law","following rules","boundaries"], r:["Psalm 119:1-8","Romans 13:8-10","Deuteronomy 6:4-9","Psalm 19:7-11","Matthew 5:17-19","Galatians 3:24"]}
-  ];
-  function relatedScriptures(topic, passage){
-    const q=((topic||"")+" "+(passage||"")).toLowerCase();
-    if(!q.trim()) return [];
-    const out=[], seen={};
-    SX.forEach(e=>{ if(e.k.some(kw=>q.indexOf(kw)>=0)){ e.r.forEach(r=>{ if(!seen[r]){ seen[r]=1; out.push(r); } }); } });
-    return out.slice(0,8);
-  }
   const BOOKS66=["Genesis","Exodus","Leviticus","Numbers","Deuteronomy","Joshua","Judges","Ruth","1 Samuel","2 Samuel","1 Kings","2 Kings","1 Chronicles","2 Chronicles","Ezra","Nehemiah","Esther","Job","Psalms","Proverbs","Ecclesiastes","Song of Solomon","Isaiah","Jeremiah","Lamentations","Ezekiel","Daniel","Hosea","Joel","Amos","Obadiah","Jonah","Micah","Nahum","Habakkuk","Zephaniah","Haggai","Zechariah","Malachi","Matthew","Mark","Luke","John","Acts","Romans","1 Corinthians","2 Corinthians","Galatians","Ephesians","Philippians","Colossians","1 Thessalonians","2 Thessalonians","1 Timothy","2 Timothy","Titus","Philemon","Hebrews","James","1 Peter","2 Peter","1 John","2 John","3 John","Jude","Revelation"];
-  const SX_STOP={the:1,and:1,for:1,with:1,that:1,this:1,your:1,you:1,our:1,who:1,what:1,why:1,how:1,when:1,where:1,was:1,are:1,were:1,being:1,about:1,from:1,into:1,over:1,not:1,but:1,his:1,her:1,him:1,them:1,they:1,god:1,jesus:1,lord:1,christ:1,bible:1,verse:1,verses:1,scripture:1,passage:1,passages:1,lesson:1,story:1,class:1,teach:1,teaching:1,kids:1,children:1,students:1};
-  function sxKeyword(topic){
-    const ws=(topic||"").toLowerCase().replace(/[^a-z\s]/g," ").split(/\s+/).filter(w=>w.length>=4 && !SX_STOP[w]);
-    ws.sort((a,b)=>b.length-a.length);
-    return ws[0]||"";
-  }
-  function bcKey(ref){ const m=String(ref).match(/^(.+?)\s+(\d+)\s*:/); return m?(m[1].toLowerCase().trim()+" "+m[2]):String(ref).toLowerCase().trim(); }
   let _sxToken=0;
-  function stripTags(s){ return String(s||"").replace(/<[^>]*>/g," ").replace(/&[a-z#0-9]+;/gi," "); }
-  function sxScore(text, kw){
-    const t=stripTags(text).toLowerCase();
-    const e=kw.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
-    const occ=(t.match(new RegExp("\\b"+e+"\\b","g"))||[]).length;
-    if(!occ) return 0;
-    const words=(t.split(/\s+/).filter(Boolean).length)||1;
-    return occ*100 + Math.min(40, Math.round((occ/words)*400));
-  }
-  async function liveRelated(keyword, token){
-    if(!keyword) return [];
-    try{
-      const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), 4500);
-      const url="https://bolls.life/v2/find/KJV?search="+encodeURIComponent(keyword)+"&match_case=false&match_whole=true&page=1";
-      const r=await fetch(url,{signal:ctrl.signal}); clearTimeout(to);
-      if(!r.ok) return [];
-      const data=await r.json();
-      const arr=Array.isArray(data)?data:((data&&Array.isArray(data.results))?data.results:[]);
-      // keep the single most on-topic verse per book, then rank books by relevance
-      const best={};
-      for(const v of arr){
-        const bn=BOOKS66[(v.book||0)-1]; if(!bn) continue;
-        const sc=sxScore(v.text, keyword);
-        if(!best[v.book] || sc>best[v.book].sc) best[v.book]={ ref:bn+" "+v.chapter+":"+v.verse, sc:sc };
-      }
-      const ranked=Object.keys(best).map(b=>best[b]).sort((a,b)=>b.sc-a.sc).slice(0,6).map(x=>x.ref);
-      return (token!==_sxToken) ? [] : ranked;
-    }catch(_){ return []; }
-  }
   function renderRelChips(box, refs){
     box.hidden=false;
     box.innerHTML='<span class="relsx-lbl">Related passages:</span> '+refs.map(r=>'<button type="button" class="chip-btn" data-ref="'+esc(r)+'">'+esc(r)+'</button>').join("");
   }
+  const _relCache={};
+  function looksLikeRef(s){ return /^[1-3]?\s?[A-Za-z][A-Za-z ]+\s+\d+(\s*:\s*\d+(\s*[-\u2013]\s*\d+)?)?$/.test(String(s||"").trim()); }
+  async function aiRelated(topic, passage, token){
+    const ck=(topic+"|"+passage).toLowerCase().trim();
+    if(_relCache[ck]) return _relCache[ck];
+    const cfg=getProviderCfg();
+    if(!cfg.key) return [];                       // every provider here needs the teacher's key
+    const prompt=[
+      "You are helping a Bible / Value-Education teacher choose scripture.",
+      "For the class topic below, give the Bible passages MOST RELEVANT TO THE TOPIC BY MEANING AND THEME — not passages that merely contain the word. Think about what the topic is really about, then choose passages that genuinely speak to it. A mix of Old and New Testament is welcome.",
+      "Topic: "+topic + (passage ? ("\nPassage already chosen: "+passage+" (suggest passages that complement it)") : ""),
+      "Return ONLY a JSON array of 6 to 8 reference strings using standard English book names, e.g. [\"Philippians 4:6-7\",\"Matthew 6:25-34\",\"Psalm 23\"]. No text before or after the array."
+    ].join("\n");
+    let txt;
+    try{ txt=await callLLM(prompt, cfg, null); }
+    catch(_){ return []; }
+    let arr=[];
+    try{ const m=txt.match(/\[[\s\S]*\]/); arr=JSON.parse(m?m[0]:txt); }catch(_){ return []; }
+    if(!Array.isArray(arr)) return [];
+    const out=[], seen={};
+    arr.forEach(x=>{ const r=String(x||"").replace(/\s+/g," ").trim(); const k=r.toLowerCase(); if(r && looksLikeRef(r) && !seen[k]){ seen[k]=1; out.push(r); } });
+    const res=out.slice(0,8);
+    if(res.length) _relCache[ck]=res;
+    return res;
+  }
   function renderRelated(){
     const box=$("sxRel"); if(!box) return;
-    const topic=$("topic")?$("topic").value:"";
-    const passage=$("passage")?$("passage").value:"";
-    const curated=relatedScriptures(topic, passage);
+    const topic=($("topic")?$("topic").value:"").trim();
+    const passage=($("passage")?$("passage").value:"").trim();
     const token=++_sxToken;
-    if(curated.length) renderRelChips(box, curated);
-    else { box.hidden=true; box.innerHTML=""; }
-    const kw=sxKeyword(topic);
-    if(kw){
-      liveRelated(kw, token).then(live=>{
-        if(token!==_sxToken || !live.length) return;
-        const bc={}; curated.forEach(r=>{ bc[bcKey(r)]=1; });
-        const extra=[];
-        live.forEach(r=>{ const k=bcKey(r); if(!bc[k]){ bc[k]=1; extra.push(r); } });
-        if(!extra.length) return;
-        renderRelChips(box, curated.concat(extra).slice(0,12));
-      });
-    }
+    if(topic.length<3 && !passage){ box.hidden=true; box.innerHTML=""; return; }
+    if(!getProviderCfg().key){ box.hidden=true; box.innerHTML=""; return; }   // no key yet — stay quiet
+    box.hidden=false;
+    box.innerHTML='<span class="relsx-lbl">Related passages:</span> <span style="opacity:.6">finding…</span>';
+    aiRelated(topic, passage, token).then(refs=>{
+      if(token!==_sxToken) return;
+      if(refs && refs.length) renderRelChips(box, refs);
+      else { box.hidden=true; box.innerHTML=""; }
+    });
   }
 
   // ---------- 3) Share / LMS ----------
@@ -2524,7 +2403,7 @@ JSON.stringify(lesson),
 
   // related scripture
   (function(){
-    let t; const deb=()=>{ clearTimeout(t); t=setTimeout(renderRelated, 250); };
+    let t; const deb=()=>{ clearTimeout(t); t=setTimeout(renderRelated, 700); };
     if($("topic")) $("topic").addEventListener("input", deb);
     if($("passage")) $("passage").addEventListener("input", deb);
   })();
