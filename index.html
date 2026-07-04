@@ -381,7 +381,7 @@
       </div>
 
       <p class="gate-note">Your data is stored in your own Google Drive (a private app folder) and synced across your devices.</p>
-      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted-2);letter-spacing:.04em">Build 2026.06.28-y</div>
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted-2);letter-spacing:.04em">Build 2026.06.28-z</div>
     </div>
   </div>
 
@@ -479,7 +479,7 @@
           <option value="bi">Bilingual (English + हिन्दी)</option>
         </select>
       </div>
-      <div class="field">
+      <div class="field" style="display:none" aria-hidden="true">
         <label for="provider">AI provider</label>
         <select id="provider">
           <option value="gemini" selected>Google Gemini</option>
@@ -496,37 +496,27 @@
       </div>
     </div>
     <div id="modelWrap" style="margin-top:2px;">
-      <div class="two">
-        <div class="field">
-          <label for="model">Model</label>
-          <select id="model">
-            <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash — free tier</option>
-            <option value="gemini-2.5-pro">Gemini 2.5 Pro — deeper</option>
-            <option value="gemini-2.0-flash">Gemini 2.0 Flash — stable</option>
-            <option value="gemini-3.5-flash">Gemini 3.5 Flash — needs billing*</option>
-            <option value="gemini-3-flash">Gemini 3 Flash*</option>
-            <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro — flagship*</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="geminiKey">Gemini API key</label>
-          <input type="password" id="geminiKey" placeholder="paste your Gemini API key" autocomplete="off">
-        </div>
+      <div class="field">
+        <label for="model">AI model</label>
+        <select id="model">
+          <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash — free tier</option>
+          <option value="gemini-2.5-pro">Gemini 2.5 Pro — deeper</option>
+          <option value="gemini-2.0-flash">Gemini 2.0 Flash — stable</option>
+          <option value="gemini-3.5-flash">Gemini 3.5 Flash — needs billing*</option>
+          <option value="gemini-3-flash">Gemini 3 Flash*</option>
+          <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro — flagship*</option>
+        </select>
       </div>
-      <p class="hint" style="margin-top:0">Free tier covers 2.5 Flash; models marked * need billing. Get a key at aistudio.google.com/apikey — it stays on this device.</p>
+      <input type="hidden" id="geminiKey">
+      <p class="hint" style="margin-top:6px">Free tier covers 2.5 Flash; models marked * need billing. Your AI service &amp; key are set from the menu.</p>
     </div>
     <div id="altWrap" style="display:none;margin-top:2px;">
-      <div class="two">
-        <div class="field">
-          <label for="altModel">Model</label>
-          <select id="altModel"></select>
-        </div>
-        <div class="field">
-          <label for="altKey">API key for this provider</label>
-          <input type="password" id="altKey" placeholder="paste your key — stays on this device" autocomplete="off">
-        </div>
+      <div class="field">
+        <label for="altModel">AI model</label>
+        <select id="altModel"></select>
       </div>
-      <p class="hint" id="provHint" style="margin-top:0"></p>
+      <input type="hidden" id="altKey">
+      <p class="hint" id="provHint" style="margin-top:6px"></p>
     </div>
     <div class="hint">Models marked * may need billing enabled on your key. Your key stays only on this device, never in the file.</div>
 
