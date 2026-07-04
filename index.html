@@ -381,7 +381,7 @@
       </div>
 
       <p class="gate-note">Your data is stored in your own Google Drive (a private app folder) and synced across your devices.</p>
-      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted-2);letter-spacing:.04em">Build 2026.06.28-v</div>
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted-2);letter-spacing:.04em">Build 2026.06.28-w</div>
     </div>
   </div>
 
@@ -1378,32 +1378,23 @@ JSON.stringify(lesson),
     out.push("");
     out.push("**Audience:** "+inp.audience+" | **Duration:** "+inp.duration+" | **Version:** "+v.name);
     out.push("");
-    const vcode = (inp.mode==="en") ? (vById(inp.trans).abbr||"") : "";
-    if(L.generalObjective){ out.push("## General Objective"); out.push(L.generalObjective); out.push(""); }
-    if(L.objectives&&L.objectives.length){ out.push("## Specific Objectives"); L.objectives.forEach(o=>out.push("- "+o)); out.push(""); }
-    if(L.learningOutcome){ out.push("## Learning Outcome"); out.push(L.learningOutcome); out.push(""); }
     out.push("## Key Passage");
+    const vcode = (inp.mode==="en") ? (vById(inp.trans).abbr||"") : "";
     out.push((L.passageRef||"") + (L.passageRef && vcode ? "  ("+vcode+")" : ""));
     if(L.passageText) out.push(L.passageText);
     out.push("");
+    if(L.objectives&&L.objectives.length){ out.push("## Learning Objectives"); L.objectives.forEach(o=>out.push("- "+o)); out.push(""); }
     if(L.context){ out.push("## Background"); out.push(L.context); out.push(""); }
     if(L.hook){ out.push("## Opening Hook"); out.push(L.hook); out.push(""); }
     if(L.notes&&L.notes.length){ out.push("## Teaching Notes"); L.notes.forEach((n,i)=>out.push((i+1)+". "+n)); out.push(""); }
-    if(L.methodology&&L.methodology.length){ out.push("## Methodology"); L.methodology.forEach(m=>out.push("- "+m)); out.push(""); }
-    if(L.tools&&L.tools.length){ out.push("## Tools"); L.tools.forEach(t=>out.push("- "+t)); out.push(""); }
     if(L.crossRefs&&L.crossRefs.length){
       out.push("## Cross References");
       L.crossRefs.forEach(x=>{ const tx=x.text?(' — "'+x.text+'"'):''; const nt=x.note?(" — "+x.note):''; out.push("- "+x.ref+tx+nt); });
       out.push("");
     }
     if(L.discussion&&L.discussion.length){ out.push("## Discussion Questions"); L.discussion.forEach(q=>out.push("- "+q)); out.push(""); }
-    if((L.activities&&L.activities.length)||L.activity){
-      out.push("## Activities");
-      if(L.activity) out.push(L.activity);
-      if(L.activities&&L.activities.length) L.activities.forEach(a=>out.push("- "+a));
-      out.push("");
-    }
     if(L.application&&L.application.length){ out.push("## Application"); L.application.forEach(a=>out.push("- "+a)); out.push(""); }
+    if(L.activity){ out.push("## Activity / Illustration"); out.push(L.activity); out.push(""); }
     if(L.assignments&&L.assignments.length){ out.push("## Assignments"); L.assignments.forEach(a=>out.push("- "+a)); out.push(""); }
     if(L.videoTopics&&L.videoTopics.length){
       out.push("## Video Resources");
@@ -1500,30 +1491,28 @@ JSON.stringify(lesson),
     return (logo||name) ? '<div style="text-align:center;border-bottom:2px solid #ec8a1c;padding-bottom:10px;margin-bottom:16px">'+logo+name+'</div>' : "";
   }
   let planCompact=false;
-  function buildPlanBody(p, compact){
-    const get=t=>p.sections.find(s=>s.title===t)||{items:[],paras:[]};
-    const paraText=t=>get(t).paras.map(x=>x.text).join(" ").trim();
-    const genObj=paraText("General Objective");
-    const specObj=get("Specific Objectives").items;
-    const outcome=paraText("Learning Outcome");
-    const methodology=get("Methodology").items;
-    const tools=get("Tools").items;
-    const actSec=get("Activities");
-    const activityLead=(actSec.paras[0]||{}).text||"";
-    const activities=actSec.items;
-    const assignments=get("Assignments").items;
+  function buildPlanBody(L, compact){
+    L=L||{};
     const teacher=(currentDisplayName||"").trim();
     const desig=lsGet("lp_desig").trim();
     const period=lsGet("lp_period").trim();
+    const genObj=(L.generalObjective||"").trim();
+    const specObj=(L.objectives||[]).filter(Boolean);
+    const outcome=(L.learningOutcome||"").trim();
+    const methodology=(L.methodology||[]).filter(Boolean);
+    const tools=(L.tools||[]).filter(Boolean);
+    const activityLead=(L.activity||"").trim();
+    const activities=(L.activities||[]).filter(Boolean);
+    const assignments=(L.assignments||[]).filter(Boolean);
     const fs = compact ? "10.5px" : "12.5px";
     const pad = compact ? "3px 8px" : "6px 9px";
     const numw = compact ? "22px" : "28px";
     const kw = compact ? "118px" : "150px";
     const dash='<span style="color:#999">—</span>';
-    const li = arr => arr&&arr.length ? '<ul style="margin:3px 0;padding-left:18px">'+arr.map(x=>'<li>'+esc(x.text||x)+'</li>').join("")+'</ul>' : dash;
+    const li = arr => arr&&arr.length ? '<ul style="margin:3px 0;padding-left:18px">'+arr.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>' : dash;
     const actCell = () => {
-      if(!activityLead && !(activities&&activities.length)) return dash;
-      let s=""; if(activityLead) s+='<p style="margin:0 0 4px">'+esc(activityLead)+'</p>'; if(activities&&activities.length) s+=li(activities); return s;
+      if(!activityLead && !activities.length) return dash;
+      let s=""; if(activityLead) s+='<p style="margin:0 0 4px">'+esc(activityLead)+'</p>'; if(activities.length) s+=li(activities); return s;
     };
     const row=(n,k,v)=>'<tr>'
       +'<td style="border:1px solid #c4ccdc;padding:'+pad+';background:#eef2fa;font-weight:bold;text-align:center;width:'+numw+';vertical-align:top">'+n+'</td>'
@@ -1535,7 +1524,7 @@ JSON.stringify(lesson),
     body+='<p style="text-align:center;font-size:'+(compact?"12px":"14px")+';margin:0 0 2px"><strong>'+(teacher?esc(teacher):"&nbsp;")+'</strong>'+(desig?' <span style="font-weight:normal;color:#555">— '+esc(desig)+'</span>':'')+'</p>';
     body+='<p style="text-align:center;font-size:'+(compact?"10.5px":"12.5px")+';color:#555;margin:0 0 '+(compact?"8px":"12px")+'">Time period: '+(period?esc(period):"____________")+'</p>';
     body+='<table style="border-collapse:collapse;width:100%;font-size:'+fs+'">';
-    body+=row("1","Topic",p.title?esc(p.title):dash);
+    body+=row("1","Topic",L.title?esc(L.title):dash);
     body+=row("2","General objective",genObj?esc(genObj):dash);
     body+=row("3","Specific objectives",li(specObj));
     body+=row("4","Learning outcome",outcome?esc(outcome):dash);
@@ -1648,27 +1637,25 @@ JSON.stringify(lesson),
     });
     return x;
   }
-  function planInnerXml(p){
-    const get=t=>(p.sections||[]).find(s=>s.title===t)||{items:[],paras:[]};
-    const paraText=t=>get(t).paras.map(x=>x.text).join(" ").trim();
-    const genObj=paraText("General Objective");
-    const specObj=get("Specific Objectives").items.map(x=>x.text);
-    const outcome=paraText("Learning Outcome");
-    const methodology=get("Methodology").items.map(x=>x.text);
-    const tools=get("Tools").items.map(x=>x.text);
-    const actSec=get("Activities");
-    const activities=actSec.paras.map(x=>x.text).concat(actSec.items.map(x=>x.text)).filter(Boolean);
-    const assignments=get("Assignments").items.map(x=>x.text);
+  function planInnerXml(L){
+    L=L||{};
     const teacher=(currentDisplayName||"").trim();
     const desig=lsGet("lp_desig").trim();
     const period=lsGet("lp_period").trim();
+    const genObj=(L.generalObjective||"").trim();
+    const specObj=(L.objectives||[]).filter(Boolean);
+    const outcome=(L.learningOutcome||"").trim();
+    const methodology=(L.methodology||[]).filter(Boolean);
+    const tools=(L.tools||[]).filter(Boolean);
+    const activities=((L.activity?[L.activity]:[]).concat(L.activities||[])).filter(Boolean);
+    const assignments=(L.assignments||[]).filter(Boolean);
     let x=_docHeaderXml();
     x+=_para({runs:[{text:"VALUE EDUCATION",sz:20,color:"6C6553"}],align:"center",spaceBefore:60,spaceAfter:0});
     x+=_para({runs:[{text:"LESSON PLAN",b:true,sz:30,color:"34539B"}],align:"center",spaceBefore:20,spaceAfter:40});
     x+=_para({runs:[{text:(teacher||" "),b:true,sz:24}].concat(desig?[{text:"  —  "+desig,sz:22,color:"555555"}]:[]),align:"center",spaceBefore:0,spaceAfter:20});
     x+=_para({runs:[{text:"Time period: "+(period||"____________"),sz:20,color:"555555"}],align:"center",spaceBefore:0,spaceAfter:140});
     const rows=[
-      ["1. Topic", p.title||"—"],
+      ["1. Topic", L.title||"—"],
       ["2. General objective", genObj||"—"],
       ["3. Specific objectives", specObj.length?specObj:"—"],
       ["4. Learning outcome", outcome||"—"],
@@ -2060,7 +2047,7 @@ JSON.stringify(lesson),
       setBusy(true, isPlan?"Building the lesson-plan PDF…":"Building the PDF…");
       try{
         await loadPdfLib();
-        await exportPDFInner(isPlan ? buildPlanBody(parse, planCompact) : buildPrintInner(parse), fileName(parse)+(isPlan?(planCompact?"_lesson_plan_1page":"_lesson_plan"):""), isPlan && planCompact);
+        await exportPDFInner(isPlan ? buildPlanBody(lesson, planCompact) : buildPrintInner(parse), fileName(parse)+(isPlan?(planCompact?"_lesson_plan_1page":"_lesson_plan"):""), isPlan && planCompact);
         setBusy(false,"");
       }catch(e){
         setBusy(false,"");
@@ -2074,7 +2061,7 @@ JSON.stringify(lesson),
     }
     try{
       if(kind==="doc"){ downloadDocx(lessonInnerXml(parse), fileName(parse)); }
-      else if(kind==="plan"){ downloadDocx(planInnerXml(parse), fileName(parse)+"_lesson_plan"); }
+      else if(kind==="plan"){ downloadDocx(planInnerXml(lesson), fileName(parse)+"_lesson_plan"); }
       else if(kind==="ppt"){ setBusy(true,"Building the slides…"); await loadPptx(); exportPptx(parse, lesson&&lesson.visual); setBusy(false,""); }
     }catch(e){ setBusy(false,"");
       showError(kind==="ppt" ? "Couldn't build the slides — the PowerPoint engine needs internet the first time. Word and PDF still work offline."
