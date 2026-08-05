@@ -486,7 +486,7 @@
   });
   const PROVIDERS = {
     gemini:    {label:"Google Gemini", native:true},
-    openrouter:{base:"https://openrouter.ai/api/v1/chat/completions", keyReq:true,  defModel:"openai/gpt-oss-120b:free"},
+    openrouter:{base:"https://openrouter.ai/api/v1/chat/completions", keyReq:true,  defModel:"nvidia/nemotron-3-ultra-550b-a55b:free"},
     groq:      {base:"https://api.groq.com/openai/v1/chat/completions", keyReq:true,  defModel:"llama-3.3-70b-versatile"},
     mistral:   {base:"https://api.mistral.ai/v1/chat/completions",     keyReq:true,  defModel:"mistral-small-latest"},
     ollama:    {base:"http://localhost:11434/v1/chat/completions",     keyReq:false, defModel:"llama3.1",     local:true},
@@ -496,12 +496,12 @@
   // Extra free OpenRouter models always pinned to the top of the list (alongside the default above),
   // so they're easy to find even if the live fetch is slow, fails, or buries them lower down.
   const OPENROUTER_PINNED_FREE = [
-    "nvidia/nemotron-3-ultra-550b-a55b:free",
     "nvidia/nemotron-3-super-120b-a12b:free",
+    "openai/gpt-oss-120b:free",
     "inclusionai/ling-3.0-flash:free"
   ];
   const PROV_HINTS = {
-    openrouter:"Get a key at openrouter.ai. Models load automatically; a few free picks (GPT-OSS 120B, Nemotron 3 Ultra, Nemotron 3 Super, Ling 3.0 Flash) are pinned to the top — pick another from the list if you like.",
+    openrouter:"Get a key at openrouter.ai. Nemotron 3 Ultra is the default. Models load automatically; a few free picks (Nemotron 3 Super, GPT-OSS 120B, Ling 3.0 Flash) are pinned to the top — pick another from the list if you like.",
     groq:"Get a free key at console.groq.com. Enter it and the available models load automatically.",
     mistral:"Get a key at console.mistral.ai. Enter it and the available models load automatically.",
     ollama:"Run Ollama locally (ollama serve). No key needed. Start it with OLLAMA_ORIGINS=* so this page can reach it.",
@@ -529,7 +529,7 @@
     let list=(ids&&ids.length)?ids.slice():[def];
     if(provider==="openrouter"){
       // make sure the preferred free default + curated free picks are present and listed first
-      const pinned=[def].concat(OPENROUTER_PINNED_FREE);
+      const pinned=Array.from(new Set([def].concat(OPENROUTER_PINNED_FREE)));
       list=list.filter(id=>pinned.indexOf(id)===-1);
       list=pinned.concat(list);
     }
