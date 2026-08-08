@@ -12,10 +12,27 @@ A browser-based lesson planning workspace for Mount Carmel School's Value Educat
 - Exports Word, PDF, PowerPoint, Canva-ready slides, and a neutral CBSE report.
 - Shares a lesson by link and supports a Google Classroom handoff.
 - Works in device-only mode or syncs private app data through Google Drive.
+- Installs as an app on Android phones and tablets, in either orientation.
+
+## Project structure
+
+The application is a single self-contained HTML file. Everything else supports installation.
+
+```text
+index.html               The entire application: markup, styles and scripts
+manifest.webmanifest     Web app manifest (name, icons, orientation)
+sw.js                    Service worker; network-first so a deploy is never served stale
+icon-192.png             App icon
+icon-512.png             App icon
+icon-maskable-512.png    Android adaptive icon (safe-zone padded)
+apple-touch-icon.png     iPad / iPhone home screen icon
+```
+
+There is no build step and no dependencies to install. Do not add a `<link>` to an external stylesheet or a `<script src>` for application code — keeping everything in `index.html` is deliberate, so the file can be deployed by pasting it into a single editor.
 
 ## Run locally
 
-No build step or package installation is required. Serve the folder over HTTP so browser APIs and local AI providers behave consistently:
+Serve the folder over HTTP so browser APIs and local AI providers behave consistently:
 
 ```bash
 python -m http.server 4173
@@ -23,11 +40,11 @@ python -m http.server 4173
 
 Then open <http://localhost:4173>.
 
-Opening `index.html` directly also works for most features, but share links and some browser security rules are more reliable over HTTP.
+Opening `index.html` directly also works for most features, but share links, the service worker, and some browser security rules are more reliable over HTTP. Installation requires HTTPS, so it will not offer to install from `localhost` over plain HTTP.
 
 ## Configuration
 
-Edit the configuration block near the top of `app.js`:
+Edit the configuration block near the top of the script in `index.html`:
 
 - `GOOGLE_CLIENT_ID` enables Google sign-in and Drive app-data sync. Add the deployed and local origins to the OAuth client's authorized JavaScript origins.
 - `SCHOOL_NAME` controls the name shown in the interface and exported files.
@@ -36,25 +53,20 @@ Edit the configuration block near the top of `app.js`:
 
 Teachers enter their own AI service key during onboarding. In device-only mode it remains in that browser. With Google sync enabled, settings, drafts, templates, unfinished setup, and the selected service key are stored in the user's private Drive app-data folder.
 
-## Project structure
-
-```text
-index.html       Accessible page structure and dialogs
-styles.css       Responsive light/dark presentation
-app.js           Planner, AI providers, persistence, exports and sharing
-tests/smoke.mjs  Dependency-free structural and syntax checks
-```
-
 ## Verify changes
 
-Node.js 18 or newer is sufficient:
+There is no test runner. After editing `index.html`, check that the inline script still parses:
 
 ```bash
-npm test
+sed -n '/^<script>$/,/^<\/script>$/p' index.html | sed '1d;$d' > /tmp/app.js && node --check /tmp/app.js
 ```
 
-The smoke test checks JavaScript syntax, required assets and controls, duplicate HTML IDs, encoding damage, and accidental inclusion of a built-in Gemini key. For UI changes, also test onboarding, a device-only reload, error handling, and the mobile layout in a browser.
+Then test in a browser: onboarding, a device-only reload, generating and exporting a lesson, error handling, and the mobile layout in both orientations.
+
+If icons or the manifest change, confirm the paths in `manifest.webmanifest` and `sw.js` still match the actual filenames — a missing icon silently disables installation.
 
 ## Deployment
 
-The repository is a static site and can be deployed directly with GitHub Pages or any static host. Serve `index.html`, `styles.css`, and `app.js` from the same directory.
+A static site with no build. Deploy the whole folder to Cloudflare Pages, GitHub Pages, or any static host, with an empty build command and the repository root as the output directory. All files must sit in the same directory as `index.html`.
+
+Installation requires HTTPS. After deploying a change, reopen the app in a fresh tab so the service worker picks up the new version.
